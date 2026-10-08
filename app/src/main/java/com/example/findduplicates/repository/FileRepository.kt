@@ -24,22 +24,50 @@ class FileRepository(private val context: Context) {
         val collection = MediaStore.Files.getContentUri(
             MediaStore.VOLUME_EXTERNAL)
         context.contentResolver
-            .query(collection,projection,null,null,null)
-            ?.use{cursor ->
-                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID)
-                val displayNAmeColumn = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME)
-                val mimeColumn = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.MIME_TYPE)
-                val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.SIZE)
-                val dateColumn = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATE_MODIFIED)
-                while(cursor.moveToNext())
-                {
-                    val id = cursor.getLong(idColumn)
-                    val uri = ContentUris.withAppendedId(collection,id)
+            .query(collection,
+            projection,
+            null,
+            null,
+            "${MediaStore.Files.FileColumns.DATE_MODIFIED} DESC")?.use { cursor ->
+
+            val idColumn =
+                cursor.getColumnIndexOrThrow(
+                    MediaStore.Files.FileColumns._ID
+                )
+
+            val displayNameColumn =
+                cursor.getColumnIndexOrThrow(
+                    MediaStore.Files.FileColumns.DISPLAY_NAME
+                )
+
+            val sizeColumn =
+                cursor.getColumnIndexOrThrow(
+                    MediaStore.Files.FileColumns.SIZE
+                )
+
+            val mimeColumn =
+                cursor.getColumnIndexOrThrow(
+                    MediaStore.Files.FileColumns.MIME_TYPE
+                )
+
+            val dateColumn =
+                cursor.getColumnIndexOrThrow(
+                    MediaStore.Files.FileColumns.DATE_MODIFIED
+                )
+
+            while (cursor.moveToNext()) {
+
+                val id = cursor.getLong(idColumn)
+
+                val uri = ContentUris.withAppendedId(
+                    collection,
+                    id
+                )
 
                     files.add(
                         DeviceFile(
                         id = id,
-                        displayName =cursor.getString(displayNAmeColumn),
+                        displayName =cursor.getString(displayNameColumn),
                         size = cursor.getLong(sizeColumn),
                         uri = uri,
                         mimeType = cursor.getString(mimeColumn),

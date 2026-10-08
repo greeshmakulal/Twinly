@@ -11,20 +11,23 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.view.WindowCompat
+import com.example.findduplicates.presentation.FileViewModel
+import com.example.findduplicates.presentation.HomeScreen
+import com.example.findduplicates.repository.FileRepository
 import com.example.findduplicates.ui.theme.FindDuplicatesTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val viewModel = FileViewModel(FileRepository(this))
         enableEdgeToEdge()
+
+        WindowCompat.getInsetsController(window, window.decorView)
+            .isAppearanceLightStatusBars = false
         setContent {
             FindDuplicatesTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                HomeScreen(viewModel)
             }
         }
     }
@@ -38,7 +41,8 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
     )
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true,
+    device = "id:Nexus S", name = "Foldable")
 @Composable
 fun GreetingPreview() {
     FindDuplicatesTheme {
