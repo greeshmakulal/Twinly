@@ -12,6 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
+import androidx.navigation.compose.rememberNavController
+import com.example.findduplicates.presentation.AppNavGraph
+import com.example.findduplicates.presentation.DuplicateResultScreen
 import com.example.findduplicates.presentation.FileViewModel
 import com.example.findduplicates.presentation.HomeScreen
 import com.example.findduplicates.repository.FileRepository
@@ -27,7 +30,13 @@ class MainActivity : ComponentActivity() {
             .isAppearanceLightStatusBars = false
         setContent {
             FindDuplicatesTheme {
-                HomeScreen(viewModel)
+                val navController = rememberNavController()
+
+                AppNavGraph(
+                    navController = navController,
+                    viewModel = viewModel
+                )
+
             }
         }
     }

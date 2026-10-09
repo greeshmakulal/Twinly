@@ -1,8 +1,15 @@
 package com.example.findduplicates.presentation
 
+import android.annotation.SuppressLint
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,25 +17,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,47 +38,77 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.findduplicates.Greeting
 import com.example.findduplicates.R
 import com.example.findduplicates.repository.FileRepository
 import com.example.findduplicates.ui.theme.FindDuplicatesTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.FileCopy
-import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.PhotoSizeSelectActual
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Shapes
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import com.example.findduplicates.ui.theme.themedBlue
-import com.example.findduplicates.ui.theme.themedYellow
+import androidx.navigation.NavController
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.findduplicates.utils.PermissionUtils
 
 @Composable
-fun HomeScreen(viewModel: FileViewModel) {
+fun HomeScreen(viewModel: FileViewModel,navController: NavController) {
     val context = LocalContext.current
     val uiState by viewModel.files.collectAsState()
     val permissions = PermissionUtils.getMediaPermissions()
+    var scanStarted by remember {
+        mutableStateOf(false)
+    }
+    val duplicateGroups by
+    viewModel.duplicateGroups.collectAsState()
+
+    val isScanning by viewModel.isScanning.collectAsState()
+    LaunchedEffect(isScanning) {
+        if (isScanning) {
+            scanStarted = true
+        }
+        if (!isScanning && scanStarted) {
+
+            scanStarted = false
+
+            if (duplicateGroups.isNotEmpty()) {
+
+                navController.navigate("duplicateResults")
+
+            } else {
+
+                Toast.makeText(
+                    context,
+                    "No Duplicates Found",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
    val permissionLauncher = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.RequestMultiplePermissions()){
        permissions->
@@ -85,7 +116,7 @@ fun HomeScreen(viewModel: FileViewModel) {
        val granted = permissions.entries.all { it.value }
        if(granted)
        {
-           viewModel.getMediaFiles()
+           viewModel.scanForDuplicates()
 
            println("Permission Granted:${uiState}")
        }
@@ -119,15 +150,16 @@ fun HomeScreen(viewModel: FileViewModel) {
                     TopSection(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(
-                                min = 180.dp,
-                                max = 230.dp
-                            ),
+                            .fillMaxSize()
+//                            .heightIn(
+//                                min = 180.dp,
+//                                max = 230.dp
+//                            )
+                        ,
                         fontFamily = Poppins,
                         onScanClick = {
                             if (PermissionUtils.hasMediaPermissions(context)) {
-
-                                viewModel.getMediaFiles()
+                                    viewModel.scanForDuplicates()
 
                             } else {
 
@@ -136,13 +168,13 @@ fun HomeScreen(viewModel: FileViewModel) {
                                 )
                             }
 
-                        }
+                        },isScanning
                     )
 
-                    BodySection(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                    )
+//                    BodySection(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                    )
                 }
 
             } else {
@@ -153,13 +185,14 @@ fun HomeScreen(viewModel: FileViewModel) {
 
                     TopSection(
                         modifier = Modifier
-                            .fillMaxWidth()
+//                            .fillMaxWidth()
+                            .fillMaxSize()
                             .weight(0.55f),
                         fontFamily = Poppins,
                         onScanClick = {
                             if (PermissionUtils.hasMediaPermissions(context)) {
 
-                                viewModel.getMediaFiles()
+                                viewModel.scanForDuplicates()
 
                             } else {
 
@@ -167,14 +200,14 @@ fun HomeScreen(viewModel: FileViewModel) {
                                     PermissionUtils.getMediaPermissions()
                                 )
                             }
-                        }
+                        },isScanning
                     )
 
-                    BodySection(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(0.45f)
-                    )
+//                    BodySection(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .weight(0.45f)
+//                    )
                 }
             }
         }
@@ -184,7 +217,8 @@ fun HomeScreen(viewModel: FileViewModel) {
 fun TopSection(
     modifier: Modifier = Modifier,
     fontFamily: FontFamily,
-    onScanClick: () -> Unit
+    onScanClick: () -> Unit,
+    isScanning: Boolean
 ) {
 
     val headerGradient = Brush.verticalGradient(
@@ -198,13 +232,11 @@ fun TopSection(
         modifier = modifier
             .background(
                 brush = headerGradient,
-                shape = RoundedCornerShape(
-                    bottomStart = 60.dp,
-                    bottomEnd = 60.dp
-                )
-            ),
-
-
+//                shape = RoundedCornerShape(
+//                    bottomStart = 60.dp,
+//                    bottomEnd = 60.dp
+//                )
+            )
     ) {
 
         Column(
@@ -243,19 +275,18 @@ fun TopSection(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .clickable{
-                        println("Clicked icon")
-                    onScanClick()
-                    },
+                    .weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
 
-                Image(
-                    painter = painterResource(R.drawable.search_file),
-                    contentDescription = "Search files",
-                    modifier = Modifier.size(92.dp)
+                ScanIcon(
+                    isScanning = isScanning,
+                    onClick = {
+                        if (!isScanning) {
+                            onScanClick()
+                        }
+                    }
                 )
 
                 Spacer(
@@ -263,7 +294,11 @@ fun TopSection(
                 )
 
                 Text(
-                    text = "Scan Files",
+                    text = if (isScanning) {
+                        "Scanning..."
+                    } else {
+                        "Tap me to Scan"
+                    },
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontFamily = fontFamily
@@ -272,6 +307,8 @@ fun TopSection(
         }
     }
 }
+
+
 @Composable
 fun BodySection(
    modifier: Modifier
@@ -383,8 +420,8 @@ fun ScanCard(
 
                 Icon(
                     imageVector = icon,
-                    contentDescription = title,
                     tint = Color.White,
+                    contentDescription = title,
                     modifier = Modifier.size(30.dp)
                 )
 
@@ -402,11 +439,99 @@ fun ScanCard(
         }
     }
 }
+@Composable
+fun ScanningLottie() {
+
+    val composition by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(
+            R.raw.scanning
+        )
+    )
+
+    val progress by animateLottieCompositionAsState(
+        composition = composition,
+        iterations = LottieConstants.IterateForever
+    )
+
+    LottieAnimation(
+        composition = composition,
+        progress = { progress },
+        modifier = Modifier.size(220.dp)
+    )
+}
+@Composable
+fun ScanIcon(
+    isScanning: Boolean,
+    onClick: () -> Unit
+) {
+
+    val iconScale by animateFloatAsState(
+        targetValue = if (isScanning) 0.75f else 1f,
+        animationSpec = tween(
+            durationMillis = 300
+        ),
+        label = "iconScale"
+    )
+
+    val infiniteTransition =
+        rememberInfiniteTransition(
+            label = "scanAnimation"
+        )
+
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 1000,
+                easing = LinearEasing
+            )
+        ),
+        label = "scanRotation"
+    )
+
+    Box(
+        modifier = Modifier
+
+            .clickable {
+                onClick()
+            },
+        contentAlignment = Alignment.Center
+    ) {
+
+        if (isScanning) {
+
+            CircularProgressIndicator(
+                progress = { 0.75f },
+                modifier = Modifier
+                    .size(120.dp)
+                    .graphicsLayer {
+                        rotationZ = rotation
+                    },
+                color = Color.White,
+                trackColor = Color.Transparent,
+                strokeWidth = 5.dp
+            )
+        }
+
+        Image(
+            painter = painterResource(R.drawable.search),
+            contentDescription = "Scan files",
+            modifier = Modifier
+                .size(90.dp)
+                .graphicsLayer {
+                    scaleX = iconScale
+                    scaleY = iconScale
+                }
+        )
+    }
+}
+@SuppressLint("ViewModelConstructorInComposable")
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
     FindDuplicatesTheme {
         val viewModel = FileViewModel(FileRepository(LocalContext.current))
-        HomeScreen(viewModel)
+        HomeScreen(viewModel,navController = NavController(LocalContext.current))
     }
 }

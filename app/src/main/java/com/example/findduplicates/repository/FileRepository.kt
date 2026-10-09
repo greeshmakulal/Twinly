@@ -3,80 +3,130 @@ package com.example.findduplicates.repository
 import android.annotation.SuppressLint
 import android.content.ContentUris
 import android.content.Context
+import android.net.Uri
 import android.provider.MediaStore
 import android.util.Log
 import com.example.findduplicates.data.DeviceFile
 import java.io.File
+import java.security.MessageDigest
 
 class FileRepository(private val context: Context) {
 
 
     @SuppressLint("Recycle")
-    fun getMediaFiles():List<DeviceFile>{
+    fun getMediaFiles(
+            collection: Uri
+        ): List<DeviceFile> {
 
-        val files = mutableListOf<DeviceFile>()
-        val projection = arrayOf(
-            MediaStore.Files.FileColumns._ID,
-            MediaStore.Files.FileColumns.DISPLAY_NAME,
-            MediaStore.Files.FileColumns.SIZE,
-            MediaStore.Files.FileColumns.MIME_TYPE,
-            MediaStore.Files.FileColumns.DATE_MODIFIED)
-        val collection = MediaStore.Files.getContentUri(
-            MediaStore.VOLUME_EXTERNAL)
-        context.contentResolver
-            .query(collection,
-            projection,
-            null,
-            null,
-            "${MediaStore.Files.FileColumns.DATE_MODIFIED} DESC")?.use { cursor ->
+            val files = mutableListOf<DeviceFile>()
 
-            val idColumn =
-                cursor.getColumnIndexOrThrow(
-                    MediaStore.Files.FileColumns._ID
-                )
+            val projection = arrayOf(
+                MediaStore.MediaColumns._ID,
+                MediaStore.MediaColumns.DISPLAY_NAME,
+                MediaStore.MediaColumns.SIZE,
+                MediaStore.MediaColumns.MIME_TYPE,
+                MediaStore.MediaColumns.DATE_MODIFIED
+            )
 
-            val displayNameColumn =
-                cursor.getColumnIndexOrThrow(
-                    MediaStore.Files.FileColumns.DISPLAY_NAME
-                )
+            context.contentResolver.query(
+                collection,
+                projection,
+                null,
+                null,
+                null
+            )?.use { cursor ->
 
-            val sizeColumn =
-                cursor.getColumnIndexOrThrow(
-                    MediaStore.Files.FileColumns.SIZE
-                )
+                val idColumn =
+                    cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
 
-            val mimeColumn =
-                cursor.getColumnIndexOrThrow(
-                    MediaStore.Files.FileColumns.MIME_TYPE
-                )
+                val nameColumn =
+                    cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME)
 
-            val dateColumn =
-                cursor.getColumnIndexOrThrow(
-                    MediaStore.Files.FileColumns.DATE_MODIFIED
-                )
+                val sizeColumn =
+                    cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.SIZE)
 
-            while (cursor.moveToNext()) {
+                val mimeColumn =
+                    cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.MIME_TYPE)
 
-                val id = cursor.getLong(idColumn)
+                val dateColumn =
+                    cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_MODIFIED)
 
-                val uri = ContentUris.withAppendedId(
-                    collection,
-                    id
-                )
+                while (cursor.moveToNext()) {
+
+                    val id = cursor.getLong(idColumn)
+
+                    // IMPORTANT
+                    val uri = ContentUris.withAppendedId(
+                        collection,
+                        id
+                    )
 
                     files.add(
                         DeviceFile(
-                        id = id,
-                        displayName =cursor.getString(displayNameColumn),
-                        size = cursor.getLong(sizeColumn),
-                        uri = uri,
-                        mimeType = cursor.getString(mimeColumn),
-                        dateModified = cursor.getLong(dateColumn)))
-
+                            id = id,
+                            displayName = cursor.getString(nameColumn),
+                            size = cursor.getLong(sizeColumn),
+                            uri = uri,
+                            mimeType = cursor.getString(mimeColumn),
+                            dateModified = cursor.getLong(dateColumn)
+                        )
+                    )
                 }
-
             }
-        Log.e("Debug","fileList :${files}")
-        return files
+
+            return files
+        }
+    fun findDuplicates(
+        files: List<DeviceFile>
+    ): List<List<DeviceFile>> {
+
+        val possibleDuplicates = files
+            .groupBy { it.size }
+            .filterValues { it.size > 1 }
+
+        val duplicateGroups = mutableListOf<List<DeviceFile>>()
+
+        possibleDuplicates.values.forEach { sameSizeFiles ->
+
+            val hashGroups = sameSizeFiles.groupBy { file ->
+                calculateHash(file.uri)
+            }
+
+            hashGroups.values
+                .filter { it.size > 1 }
+                .forEach { duplicates ->
+                    duplicateGroups.add(duplicates)
+                }
+        }
+
+        return duplicateGroups
+    }
+    private fun calculateHash(uri: Uri): String {
+
+        val digest = MessageDigest.getInstance("SHA-256")
+
+        context.contentResolver
+            .openInputStream(uri)
+            ?.use { inputStream ->
+
+                val buffer = ByteArray(8192)
+
+                var read: Int
+
+                while (
+                    inputStream.read(buffer).also { read = it } != -1
+                ) {
+                    digest.update(
+                        buffer,
+                        0,
+                        read
+                    )
+                }
+            }
+
+        return digest.digest()
+            .joinToString("") {
+                "%02x".format(it)
+            }
     }
 }

@@ -38,12 +38,17 @@ android {
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.compose.animation.core)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.text)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.ui.graphics)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -55,4 +60,7 @@ dependencies {
     implementation(platform("androidx.compose:compose-bom:2026.09.00"))
 
     implementation("androidx.compose.material:material-icons-extended")
+    // Coil Compose integration
+    implementation("io.coil-kt.coil3:coil-compose:3.6.3")
+    implementation("com.airbnb.android:lottie-compose:6.6.2")
 }
