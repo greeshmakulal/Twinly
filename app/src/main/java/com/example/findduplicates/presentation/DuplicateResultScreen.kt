@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
@@ -43,8 +44,12 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxColors
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -96,15 +101,19 @@ fun DuplicateResultScreen(viewModel: FileViewModel,navController: NavController)
             TopBar()
         }
     ) {innerPadding->
-        MainContent(modifier =
-            Modifier.padding(innerPadding),
-            groups,
-            onDeleted = { deletedIds ->
-                viewModel.removeDeletedFiles(deletedIds)
-                    viewModel.scanForDuplicates()
-                navController.popBackStack()
+        if (groups.isEmpty()) {
+             navController.popBackStack()
 
-            })
+        } else {
+            MainContent(
+                modifier = Modifier.padding(innerPadding),
+                groups = groups,
+                onDeleted = { deletedIds ->
+                    viewModel.removeDeletedFiles(deletedIds)
+                    viewModel.scanForDuplicates()
+                }
+            )
+        }
 
     }
     
@@ -545,6 +554,7 @@ fun formatFileSize(bytes: Long): String {
             "$bytes B"
     }
 }
+
 @SuppressLint("ViewModelConstructorInComposable")
 @Preview(showBackground = true)
 @Composable

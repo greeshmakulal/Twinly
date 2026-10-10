@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -46,11 +47,14 @@ import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.FileCopy
 import androidx.compose.material.icons.filled.PhotoSizeSelectActual
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
@@ -87,6 +91,11 @@ fun HomeScreen(viewModel: FileViewModel,navController: NavController) {
     viewModel.duplicateGroups.collectAsState()
 
     val isScanning by viewModel.isScanning.collectAsState()
+    val scanProgress by viewModel.scanProgress.collectAsState()
+    val scanTotal by viewModel.scanTotal.collectAsState()
+    val scanStage by viewModel.scanStage.collectAsState()
+    val liveDuplicateCount by viewModel.liveDuplicateCount.collectAsState()
+
     LaunchedEffect(isScanning) {
         if (isScanning) {
             scanStarted = true
@@ -124,7 +133,17 @@ fun HomeScreen(viewModel: FileViewModel,navController: NavController) {
     val Poppins = FontFamily(
         Font(R.font.poppins_bold)
     )
-
+    val onScanAction: () -> Unit = {
+        if (isScanning) {
+            viewModel.stopScan()
+        } else if (PermissionUtils.hasMediaPermissions(context)) {
+            viewModel.scanForDuplicates()
+        } else {
+            permissionLauncher.launch(
+                PermissionUtils.getMediaPermissions()
+            )
+        }
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -157,19 +176,18 @@ fun HomeScreen(viewModel: FileViewModel,navController: NavController) {
 //                            )
                         ,
                         fontFamily = Poppins,
-                        onScanClick = {
-                            if (PermissionUtils.hasMediaPermissions(context)) {
-                                    viewModel.scanForDuplicates()
-
-                            } else {
-
-                                permissionLauncher.launch(
-                                    PermissionUtils.getMediaPermissions()
-                                )
-                            }
-
-                        },isScanning
+                        onScanClick =onScanAction
+                        ,isScanning
                     )
+                    if (isScanning) {
+                        ScanProgressCard(
+                            stage = scanStage,
+                            progress = scanProgress,
+                            total = scanTotal,
+                            onStop = { viewModel.stopScan() },
+                            duplicateCount = liveDuplicateCount,
+                        )
+                    }
 
 //                    BodySection(
 //                        modifier = Modifier
@@ -189,19 +207,17 @@ fun HomeScreen(viewModel: FileViewModel,navController: NavController) {
                             .fillMaxSize()
                             .weight(0.55f),
                         fontFamily = Poppins,
-                        onScanClick = {
-                            if (PermissionUtils.hasMediaPermissions(context)) {
-
-                                viewModel.scanForDuplicates()
-
-                            } else {
-
-                                permissionLauncher.launch(
-                                    PermissionUtils.getMediaPermissions()
-                                )
-                            }
-                        },isScanning
+                        onScanClick =onScanAction,isScanning
                     )
+                    if (isScanning) {
+                        ScanProgressCard(
+                            stage = scanStage,
+                            progress = scanProgress,
+                            total = scanTotal,
+                            onStop = { viewModel.stopScan() },
+                            duplicateCount = liveDuplicateCount,
+                        )
+                    }
 
 //                    BodySection(
 //                        modifier = Modifier
@@ -282,11 +298,7 @@ fun TopSection(
 
                 ScanIcon(
                     isScanning = isScanning,
-                    onClick = {
-                        if (!isScanning) {
-                            onScanClick()
-                        }
-                    }
+                    onClick = onScanClick
                 )
 
                 Spacer(
@@ -294,10 +306,9 @@ fun TopSection(
                 )
 
                 Text(
-                    text = if (isScanning) {
-                        "Scanning..."
-                    } else {
-                        "Tap me to Scan"
+                    text = when {
+                        isScanning -> "Tap to Stop Scan"
+                        else -> "Tap me to Scan"
                     },
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
@@ -524,6 +535,104 @@ fun ScanIcon(
                     scaleY = iconScale
                 }
         )
+    }
+}
+@Composable
+fun ScanProgressCard(
+    stage: String,
+    progress: Int,
+    total: Int,
+    onStop: () -> Unit,
+    duplicateCount: Int,
+) {
+    val fraction = if (total > 0) {
+        (progress.toFloat() / total).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(32.dp),
+                    strokeWidth = 3.dp
+                )
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Scanning your files",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Text(
+                        text = stage,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+
+            LinearProgressIndicator(
+                progress = { fraction },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FileCopy,
+                        contentDescription = "Duplicate groups",
+                        tint = Color(0xFFDC0D54)
+                    )
+
+                    Text(
+                        text = "Duplicate groups found",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                Text(
+                    text = duplicateCount.toString(),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color(0xFFDC0D54),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Text(
+                text = "$progress / $total images analyzed",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            OutlinedButton(
+                onClick = onStop,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Stop,
+                    contentDescription = null
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("Stop Scan")
+            }
+        }
     }
 }
 @SuppressLint("ViewModelConstructorInComposable")

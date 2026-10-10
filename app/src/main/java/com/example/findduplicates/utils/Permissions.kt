@@ -9,8 +9,17 @@ import androidx.core.content.ContextCompat
 
 object PermissionUtils {
 
+
+
+
         fun getMediaPermissions(): Array<String> {
-            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return if (Build.VERSION.SDK_INT >= 34) {
+                arrayOf(
+                    Manifest.permission.READ_MEDIA_IMAGES,
+                    Manifest.permission.READ_MEDIA_VIDEO,
+                    Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+                )
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 arrayOf(
                     Manifest.permission.READ_MEDIA_IMAGES,
                     Manifest.permission.READ_MEDIA_VIDEO
@@ -23,12 +32,30 @@ object PermissionUtils {
         }
 
         fun hasMediaPermissions(context: Context): Boolean {
-            return getMediaPermissions().all { permission ->
-                ContextCompat.checkSelfPermission(
+            val imageGranted = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_MEDIA_IMAGES
+            ) == PackageManager.PERMISSION_GRANTED
+
+            val videoGranted = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_MEDIA_VIDEO
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (Build.VERSION.SDK_INT >= 34) {
+                val selectedPhotosGranted = ContextCompat.checkSelfPermission(
                     context,
-                    permission
+                    Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
                 ) == PackageManager.PERMISSION_GRANTED
+
+                return imageGranted || videoGranted || selectedPhotosGranted
             }
+
+            return imageGranted && videoGranted
         }
 
-}
+    }
+
+
+
+

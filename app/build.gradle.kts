@@ -63,4 +63,9 @@ dependencies {
     // Coil Compose integration
     implementation("io.coil-kt.coil3:coil-compose:3.6.3")
     implementation("com.airbnb.android:lottie-compose:6.6.2")
+    // LiteRT for on-device image embeddings
+    implementation("com.google.ai.edge.litert:litert:2.2.0")
+
+// ML Kit face detection
+    implementation("com.google.mlkit:face-detection:16.1.7")
 }
