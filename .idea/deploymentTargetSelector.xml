@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-10-10T07:57:24.957734400Z">
+        <DropdownSelection timestamp="2026-10-12T07:04:42.183442800Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=ZD222KG8H2" />
+              <DeviceId pluginId="Wireless" identifier="serviceName=adb-ZD222KG8H2-OY6xZo" />
             </handle>
           </Target>
         </DropdownSelection>
@@ -15,12 +15,7 @@
           <targets>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="PhysicalDevice" identifier="serial=ZD222KG8H2" />
-              </handle>
-            </Target>
-            <Target type="DEFAULT_BOOT">
-              <handle>
-                <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\DELL\.android\avd\Medium_Phone.avd" />
+                <DeviceId pluginId="Wireless" identifier="serviceName=adb-ZD222KG8H2-OY6xZo" />
               </handle>
             </Target>
           </targets>

@@ -24,4 +24,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "FindDuplicates"
 include(":app")
- 

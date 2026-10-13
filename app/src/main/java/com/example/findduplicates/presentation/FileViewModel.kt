@@ -8,12 +8,16 @@ import androidx.lifecycle.viewModelScope
 import com.example.findduplicates.data.DeviceFile
 import com.example.findduplicates.repository.FileRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.coroutines.cancellation.CancellationException
 
 class FileViewModel(val repository: FileRepository): ViewModel() {
 
@@ -22,6 +26,8 @@ class FileViewModel(val repository: FileRepository): ViewModel() {
     private var _isScanning: MutableStateFlow<Boolean> = MutableStateFlow(false)
     var isScanning: StateFlow<Boolean> = _isScanning
     private val stopScanRequested = AtomicBoolean(false)
+
+    private var scanJob: Job? = null
     private val _scanProgress = MutableStateFlow(0)
     val scanProgress: StateFlow<Int> = _scanProgress.asStateFlow()
 
@@ -91,54 +97,91 @@ class FileViewModel(val repository: FileRepository): ViewModel() {
     val duplicateGroups =
         _duplicateGroups.asStateFlow()
 
-    fun scanForDuplicates() {
-        viewModelScope.launch(Dispatchers.IO) {
-            _liveDuplicateCount.value = 0
-            stopScanRequested.set(false)
+
+    private val _exactDuplicateCount = MutableStateFlow(0)
+    val exactDuplicateCount: StateFlow<Int> = _exactDuplicateCount.asStateFlow()
+
+    private val _similarDuplicateCount = MutableStateFlow(0)
+    val similarDuplicateCount: StateFlow<Int> = _similarDuplicateCount.asStateFlow()
+
+    // Add maxLimit parameter (null or 0 means scan all)
+    fun scanForDuplicates(maxLimit: Int? = null) {
+        if (scanJob?.isActive == true) return
+
+        stopScanRequested.set(false)
+
+        scanJob = viewModelScope.launch(Dispatchers.IO) {
             _isScanning.value = true
             _scanProgress.value = 0
             _scanTotal.value = 0
+            _exactDuplicateCount.value = 0
+            _similarDuplicateCount.value = 0
+            _liveDuplicateCount.value = 0
+            _duplicateGroups.value = emptyList()
             _scanStage.value = "Loading files..."
 
-            try {
-                val scannedFiles = getMediaFiles()
+            var exactDuplicates: List<List<DeviceFile>> = emptyList()
+            var similarImages: List<List<DeviceFile>> = emptyList()
 
-                val imageCount = scannedFiles.count {
+            try {
+                currentCoroutineContext().ensureActive()
+
+                val scannedFiles = getMediaFiles()
+                val allImageFiles = scannedFiles.filter {
                     it.mimeType?.startsWith("image/", ignoreCase = true) == true
                 }
 
-                _scanTotal.value = imageCount
+                // Apply user limit if specified and valid
+                val imageFiles = if (maxLimit != null && maxLimit > 0) {
+                    allImageFiles.take(maxLimit)
+                } else {
+                    allImageFiles
+                }
+
+                _scanTotal.value = imageFiles.size
+
+                if (stopScanRequested.get()) {
+                    handleScanStopped(emptyList(), emptyList())
+                    return@launch
+                }
+
                 _scanStage.value = "Checking exact duplicates..."
+                exactDuplicates = repository.findDuplicates(imageFiles)
+                _exactDuplicateCount.value = exactDuplicates.size
+                _liveDuplicateCount.value = exactDuplicates.size + similarImages.size
 
-                val exactDuplicates = repository.findDuplicates(scannedFiles)
+                if (stopScanRequested.get()) {
+                    handleScanStopped(exactDuplicates, emptyList())
+                    return@launch
+                }
 
-                _liveDuplicateCount.value = exactDuplicates.size
                 _scanStage.value = "Analyzing similar images..."
-
-                _scanStage.value = "Analyzing similar images..."
-                val similarImages = repository.findSimilarImageGroups(
-                    files = scannedFiles,
+                similarImages = repository.findSimilarImageGroups(
+                    files = imageFiles,
                     shouldStop = { stopScanRequested.get() },
                     onProgress = { processed, total ->
                         _scanProgress.value = processed
                         _scanTotal.value = total
                     },
                     onDuplicateCount = { count ->
+                        _similarDuplicateCount.value = count
                         _liveDuplicateCount.value = exactDuplicates.size + count
                     }
                 )
 
-                _duplicateGroups.value = mergeGroups(
-                    exactDuplicates + similarImages
-                )
-
-                _liveDuplicateCount.value = _duplicateGroups.value.size
-                _scanStage.value = if (stopScanRequested.get()) {
-                    "Scan stopped"
-                } else {
-                    "Scan complete"
+                if (stopScanRequested.get()) {
+                    handleScanStopped(exactDuplicates, similarImages)
+                    return@launch
                 }
 
+                val mergedGroups = mergeGroups(exactDuplicates + similarImages)
+                _duplicateGroups.value = mergedGroups
+                _liveDuplicateCount.value = mergedGroups.size
+                _scanStage.value = "Scan complete"
+
+            } catch (e: CancellationException) {
+                handleScanStopped(exactDuplicates, similarImages)
+                throw e
             } catch (e: Exception) {
                 Log.e("FileViewModel", "Media scan failed", e)
                 _scanStage.value = "Scan failed"
@@ -147,6 +190,20 @@ class FileViewModel(val repository: FileRepository): ViewModel() {
             }
         }
     }
+
+    private fun handleScanStopped(
+        exact: List<List<DeviceFile>>,
+        similar: List<List<DeviceFile>>
+    ) {
+        val merged = mergeGroups(exact + similar)
+        _duplicateGroups.value = merged
+        _exactDuplicateCount.value = exact.size
+        _similarDuplicateCount.value = similar.size
+        _liveDuplicateCount.value = merged.size
+        _scanStage.value = "Scan stopped"
+    }
+
+
     fun removeDeletedFiles(deletedIds: Set<Long>) {
 
         _duplicateGroups.value =
