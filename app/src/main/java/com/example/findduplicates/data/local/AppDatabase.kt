@@ -8,7 +8,7 @@ import androidx.room3.RoomDatabase
 import com.example.findduplicates.data.local.converters.EmbeddingTypeConverter
 
 
-@Database(entities = [ImageEmbeddingEntity::class], version = 2, exportSchema = false)
+@Database(entities = [ImageEmbeddingEntity::class], version = 3, exportSchema = false)
 @ColumnTypeConverters(EmbeddingTypeConverter::class)
 abstract class AppDatabase : RoomDatabase() {
 

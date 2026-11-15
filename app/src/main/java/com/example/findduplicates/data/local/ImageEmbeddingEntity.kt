@@ -2,9 +2,13 @@ package com.example.findduplicates.data.local
 
 
 import androidx.room3.Entity
+import androidx.room3.Index
 import androidx.room3.PrimaryKey
 
-@Entity(tableName = "image_embeddings")
+@Entity(
+    tableName = "image_embeddings",
+    indices = [Index(value = ["dateModified"])]
+)
 data class ImageEmbeddingEntity(
     @PrimaryKey val imageUri: String,
     val dateModified: Long, // Used to check if the image has changed on disk

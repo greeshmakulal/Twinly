@@ -12,47 +12,32 @@ object PermissionUtils {
 
 
 
-        fun getMediaPermissions(): Array<String> {
-            return if (Build.VERSION.SDK_INT >= 34) {
+    fun getMediaPermissions(): Array<String> {
+        return when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
                 arrayOf(
                     Manifest.permission.READ_MEDIA_IMAGES,
                     Manifest.permission.READ_MEDIA_VIDEO,
-                    Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+                    Manifest.permission.POST_NOTIFICATIONS
                 )
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            }
+
+            else -> {
                 arrayOf(
-                    Manifest.permission.READ_MEDIA_IMAGES,
-                    Manifest.permission.READ_MEDIA_VIDEO
-                )
-            } else {
-                arrayOf(
-                    Manifest.permission.READ_EXTERNAL_STORAGE
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+//                    Manifest.permission.POST_NOTIFICATIONS
                 )
             }
         }
-
-        fun hasMediaPermissions(context: Context): Boolean {
-            val imageGranted = ContextCompat.checkSelfPermission(
+    }
+    fun hasMediaPermissions(context: Context): Boolean {
+        return getMediaPermissions().all { permission ->
+            ContextCompat.checkSelfPermission(
                 context,
-                Manifest.permission.READ_MEDIA_IMAGES
+                permission
             ) == PackageManager.PERMISSION_GRANTED
-
-            val videoGranted = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.READ_MEDIA_VIDEO
-            ) == PackageManager.PERMISSION_GRANTED
-
-            if (Build.VERSION.SDK_INT >= 34) {
-                val selectedPhotosGranted = ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
-                ) == PackageManager.PERMISSION_GRANTED
-
-                return imageGranted || videoGranted || selectedPhotosGranted
-            }
-
-            return imageGranted && videoGranted
         }
+    }
 
     }
 

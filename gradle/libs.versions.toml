@@ -21,6 +21,12 @@ room3Runtime = "3.0.3"
 ksp ="2.3.11"
 foundation = "1.12.1"
 leakcanary = "1.0.0"
+compiler = "3.2.0-alpha11"
+firebaseCrashlytics = "21.0.0"
+googleGmsGoogleServices = "4.5.0"
+googleFirebaseCrashlytics = "3.0.8"
+firebaseAnalytics = "24.0.0"
+firebaseMessaging = "26.0.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -49,9 +55,15 @@ androidx-room-common = { group = "androidx.room", name = "room-common", version.
 androidx-room3-runtime = { group = "androidx.room3", name = "room3-runtime", version.ref = "room3Runtime" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
 leakcanary = { group = "com.android.tools.studio.leakcanary", name = "leakcanary", version.ref = "leakcanary" }
+androidx-compiler = { group = "androidx.databinding", name = "compiler", version.ref = "compiler" }
+firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics", version.ref = "firebaseCrashlytics" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics", version.ref = "firebaseAnalytics" }
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging", version.ref = "firebaseMessaging" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+google-gms-google-services = { id = "com.google.gms.google-services", version.ref = "googleGmsGoogleServices" }
+google-firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "googleFirebaseCrashlytics" }
 

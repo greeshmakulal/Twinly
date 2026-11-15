@@ -2,6 +2,10 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.gms.google.services)
+    alias(libs.plugins.google.firebase.crashlytics)
+//    alias(libs.plugins.google.gms.google.services)
+//    alias(libs.plugins.google.firebase.crashlytics)
 }
 
 android {
@@ -34,11 +38,15 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.compiler)
     implementation(libs.androidx.compose.animation.core)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material3)
@@ -53,10 +61,17 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation("androidx.room3:room3-runtime:3.0.3")
+    implementation("androidx.datastore:datastore-preferences:1.1.3")
+    implementation("androidx.media3:media3-exoplayer:1.5.1")
+    implementation("androidx.media3:media3-ui:1.5.1")
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.messaging)
     debugImplementation(libs.leakcanary)
     ksp("androidx.room3:room3-compiler:3.0.3")
     implementation(libs.androidx.ui.graphics)
     testImplementation(libs.junit)
+    testImplementation("org.mockito:mockito-core:5.14.2")
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -74,4 +89,7 @@ dependencies {
 
 // ML Kit face detection
     implementation("com.google.mlkit:face-detection:16.1.7")
+//    implementation(libs.firebase.crashlytics)
+//    implementation("com.google.firebase:firebase-analytics")
+//    implementation(platform("com.google.firebase:firebase-bom:35.0.2"))
 }
