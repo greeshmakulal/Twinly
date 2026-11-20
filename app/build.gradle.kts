@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -13,24 +16,48 @@ android {
     compileSdk {
         version = release(37)
     }
-
+    val versionProps = Properties().apply {
+        load(rootProject.file("version.properties").inputStream())
+    }
     defaultConfig {
         applicationId = "com.example.findduplicates"
         minSdk = 24
         targetSdk = 37
         versionCode = 1
-        versionName = "1.0"
+        versionName = "${versionProps["MAJOR"]}.${versionProps["MINOR"]}.${versionProps["PATCH"]}"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+    flavorDimensions+="environment"
     buildTypes {
+        debug{
+            optimization {
+                enable = false
+            }
+        }
         release {
             optimization {
                 enable = false
             }
         }
     }
+//    productFlavors{
+//        create("dev") {
+//            dimension = "environment"
+//            applicationIdSuffix = ".dev"
+//            versionNameSuffix = "-dev"
+//        }
+//        create("staging") {
+//            dimension = "environment"
+//            applicationIdSuffix = ".staging"
+//            versionNameSuffix = "-staging"
+//        }
+//    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -41,6 +68,16 @@ android {
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
+    //noinspection WrongGradleMethod
+//    androidComponents{
+//        onVariants{variant->
+//            if(variant.buildType=="release" ){
+//                variant.outputs.forEach { output->
+//                    output.versionName.set(versionProps.entries.toString())
+//                }
+//            }
+//        }
+//    }
 }
 
 dependencies {
